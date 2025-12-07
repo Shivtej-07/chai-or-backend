@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
     deleteAnyVideo,
+    deleteVideoForCopyright,
     getAllUsers,
     getSystemStats,
 } from "../controllers/admin.controller.js"
@@ -15,5 +16,6 @@ router.use(verifyAdmin); // Apply verifyAdmin middleware to all routes in this f
 router.route("/stats").get(getSystemStats);
 router.route("/users").get(getAllUsers);
 router.route("/video/:videoId").delete(deleteAnyVideo);
+router.route("/video/copyright/:videoId").delete(deleteVideoForCopyright);
 
 export default router;

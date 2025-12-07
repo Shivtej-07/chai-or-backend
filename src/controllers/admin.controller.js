@@ -86,8 +86,44 @@ const deleteAnyVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "Video deleted successfully by admin"));
 })
 
+const deleteVideoForCopyright = asyncHandler(async (req, res) => {
+    // Delete video for copyright violation and add strike to user
+    const { videoId } = req.params;
+
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    const userId = video.owner;
+
+    // Delete the video
+    await Video.findByIdAndDelete(videoId);
+
+    // Cleanup related data
+    await Like.deleteMany({ video: videoId });
+    await Comment.deleteMany({ video: videoId });
+
+    // Add strike to user
+    const user = await User.findById(userId);
+    if (user) {
+        user.copyrightStrikes = (user.copyrightStrikes || 0) + 1;
+        await user.save({ validateBeforeSave: false });
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { copyrightStrikes: user ? user.copyrightStrikes : 0 }, "Video deleted for copyright violation, strike added to user"));
+})
+
 export {
     getSystemStats,
     getAllUsers,
-    deleteAnyVideo
+    deleteAnyVideo,
+    deleteVideoForCopyright
 }
