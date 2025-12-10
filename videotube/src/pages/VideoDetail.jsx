@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import '../index.css';
+import CommentList from '../components/CommentList';
 
 function VideoDetail() {
     const { videoId } = useParams();
@@ -169,6 +170,9 @@ function VideoDetail() {
                         <p style={{ fontWeight: '500', marginBottom: '8px' }}>{video.views} views • {new Date(video.createdAt).toLocaleDateString()}</p>
                         <p>{video.description}</p>
                     </div>
+
+                    {/* Comments Section */}
+                    <CommentList videoId={videoId} />
                 </div>
             </div>
 
