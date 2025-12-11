@@ -22,12 +22,12 @@ export const getAllVideos = asyncHandler(async (req, res) => {
     const pageNumber = Number(page) || 1;
     const limitNumber = Number(limit) || 10;
 
-    // Build filter conditions
-    const filter = {};
+    // Build match conditions
+    const matchConditions = {};
 
     // 🔍 Search by title or description
     if (query) {
-        filter.$or = [
+        matchConditions.$or = [
             { title: { $regex: query, $options: "i" } },
             { description: { $regex: query, $options: "i" } }
         ];
@@ -35,35 +35,79 @@ export const getAllVideos = asyncHandler(async (req, res) => {
 
     // 👤 Filter by uploader userId
     if (userId) {
-        filter.owner = userId;
+        matchConditions.owner = new mongoose.Types.ObjectId(userId);
     }
 
     // 🩳 Filter by Shorts (duration <= 60 seconds)
     if (req.query.isShorts === "true") {
-        filter.duration = { $lte: 60 };
+        matchConditions.duration = { $lte: 60 };
     } else if (req.query.isShorts === "false") {
-        filter.duration = { $gt: 60 };
+        matchConditions.duration = { $gt: 60 };
     }
 
     // Sorting
     const sort = {};
     sort[sortBy] = sortType === "asc" ? 1 : -1;
 
-    // Pagination
-    const skip = (pageNumber - 1) * limitNumber;
+    // Aggregation Pipeline
+    const pipeline = [
+        { $match: matchConditions },
+        { $sort: sort },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                owner: { $first: "$owner" }
+            }
+        },
+        // Lookup Likes
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likes" },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likes.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                likes: 0 // Remove likes array to keep response clean
+            }
+        }
+    ];
 
-    console.log("getAllVideos Query Params:", req.query); // Debug
-    console.log("getAllVideos Filter:", filter); // Debug
+    const options = {
+        page: pageNumber,
+        limit: limitNumber
+    };
 
-    // Fetch videos
-    const videos = await Video
-        .find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNumber)
-        .populate("owner", "username avatar");
-
-    const totalVideos = await Video.countDocuments(filter);
+    const videos = await Video.aggregatePaginate(Video.aggregate(pipeline), options);
 
     return res
         .status(200)
@@ -71,12 +115,12 @@ export const getAllVideos = asyncHandler(async (req, res) => {
             new ApiResponse(
                 200,
                 {
-                    videos,
+                    videos: videos.docs,
                     pagination: {
-                        totalVideos,
-                        page: pageNumber,
-                        limit: limitNumber,
-                        totalPages: Math.ceil(totalVideos / limitNumber)
+                        totalVideos: videos.totalDocs,
+                        page: videos.page,
+                        limit: videos.limit,
+                        totalPages: videos.totalPages
                     }
                 },
                 "Videos fetched successfully"

@@ -14,7 +14,7 @@ const router = Router();
 
 router
     .route("/")
-    .get(getAllVideos)
+    .get(optionalAuth, getAllVideos)
 
 router
     .route("/:videoId")

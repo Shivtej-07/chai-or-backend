@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import CommentList from '../components/CommentList';
 
 function Shorts() {
     const [shorts, setShorts] = useState([]);
@@ -8,6 +10,9 @@ function Shorts() {
     const [error, setError] = useState(null);
     const containerRef = useRef(null);
     const videoRefs = useRef({});
+
+    const [activeCommentVideoId, setActiveCommentVideoId] = useState(null);
+    const { user } = useAuth(); // Assuming useAuth is available for checking login status
 
     useEffect(() => {
         const fetchShorts = async () => {
@@ -24,6 +29,28 @@ function Shorts() {
 
         fetchShorts();
     }, []);
+
+    const handleLike = async (videoId) => {
+        if (!user) return alert("Please login to like");
+
+        try {
+            const response = await api.post(`/likes/toggle/v/${videoId}`);
+            const isLiked = response.data.data.isLiked;
+
+            setShorts(prevShorts => prevShorts.map(video => {
+                if (video._id === videoId) {
+                    return {
+                        ...video,
+                        isLiked: isLiked,
+                        likesCount: isLiked ? (video.likesCount || 0) + 1 : (video.likesCount || 0) - 1
+                    };
+                }
+                return video;
+            }));
+        } catch (err) {
+            console.error("Failed to toggle like:", err);
+        }
+    };
 
     useEffect(() => {
         const observerOptions = {
@@ -157,13 +184,19 @@ function Shorts() {
 
                             {/* Side Actions */}
                             <div className="absolute bottom-20 right-2 flex flex-col gap-6 items-center text-white pointer-events-auto">
-                                <button className="flex flex-col items-center gap-1 group/btn">
-                                    <div className="p-3 bg-gray-800/60 rounded-full group-hover/btn:bg-gray-700/60 transition">
+                                <button
+                                    onClick={() => handleLike(video._id)}
+                                    className="flex flex-col items-center gap-1 group/btn"
+                                >
+                                    <div className={`p-3 rounded-full transition ${video.isLiked ? 'bg-red-600' : 'bg-gray-800/60 group-hover/btn:bg-gray-700/60'}`}>
                                         👍
                                     </div>
-                                    <span className="text-xs font-bold">Like</span>
+                                    <span className="text-xs font-bold">{video.likesCount || 0}</span>
                                 </button>
-                                <button className="flex flex-col items-center gap-1 group/btn">
+                                <button
+                                    onClick={() => setActiveCommentVideoId(video._id)}
+                                    className="flex flex-col items-center gap-1 group/btn"
+                                >
                                     <div className="p-3 bg-gray-800/60 rounded-full group-hover/btn:bg-gray-700/60 transition">
                                         💬
                                     </div>
@@ -179,6 +212,22 @@ function Shorts() {
                         </div>
                     </div>
                 ))
+            )}
+
+            {/* Comments Modal / Overlay */}
+            {activeCommentVideoId && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex justify-end">
+                    <div className="w-full max-w-md bg-gray-900 h-full p-4 overflow-y-auto relative animate-in slide-in-from-right duration-300">
+                        <button
+                            onClick={() => setActiveCommentVideoId(null)}
+                            className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"
+                        >
+                            ✕
+                        </button>
+                        <h2 className="text-xl font-bold text-white mb-4">Comments</h2>
+                        <CommentList videoId={activeCommentVideoId} />
+                    </div>
+                </div>
             )}
         </div>
     );
