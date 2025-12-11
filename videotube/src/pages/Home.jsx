@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import '../index.css';
+import VideoCard from '../components/VideoCard';
 
 function Home() {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState('All');
+
+    const categories = ['All', 'Trending', 'Music', 'Gaming', 'Technology', 'Education', 'Entertainment'];
 
     useEffect(() => {
         const fetchVideos = async () => {
@@ -25,157 +28,76 @@ function Home() {
         fetchVideos();
     }, []);
 
-    const formatDuration = (seconds) => {
-        if (!seconds) return "0:00";
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    if (loading) return (
+        <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+        </div>
+    );
 
-    const formatTimeAgo = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const seconds = Math.floor((now - date) / 1000);
-
-        let interval = seconds / 31536000;
-        if (interval > 1) return Math.floor(interval) + " years ago";
-        interval = seconds / 2592000;
-        if (interval > 1) return Math.floor(interval) + " months ago";
-        interval = seconds / 86400;
-        if (interval > 1) return Math.floor(interval) + " days ago";
-        return "Just now";
-    };
-
-    if (loading) return <div className="text-center" style={{ marginTop: '2rem' }}>Loading videos...</div>;
-    if (error) return <div className="text-center status error" style={{ marginTop: '2rem' }}>{error}</div>;
+    if (error) return (
+        <div className="text-center mt-8">
+            <div className="text-red-500 text-lg">{error}</div>
+            <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            >
+                Retry
+            </button>
+        </div>
+    );
 
     return (
-        <div>
-            {/* Filter chips could go here */}
-            {/* <div className="filter-bar"> ... </div> */}
+        <div className="p-4 lg:p-6">
+            {/* Categories Filter */}
+            <div className="mb-6 overflow-x-auto">
+                <div className="flex gap-2 pb-2">
+                    {categories.map((category) => (
+                        <button
+                            key={category}
+                            onClick={() => setSelectedCategory(category)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === category
+                                ? 'bg-gray-700 text-white'
+                                : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                                }`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-            <h2 className="hidden">Recommended</h2>
-
+            {/* Videos Grid */}
             {videos.length === 0 ? (
-                <p className="text-center">No videos found.</p>
+                <div className="text-center py-16">
+                    <div className="text-5xl mb-4">📹</div>
+                    <h3 className="text-xl font-semibold mb-2">No videos found</h3>
+                    <p className="text-gray-400">Be the first to upload a video!</p>
+                    <Link
+                        to="/publish"
+                        className="inline-block mt-4 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Upload Video
+                    </Link>
+                </div>
             ) : (
-                <div className="video-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                     {videos.map(video => (
-                        <Link to={`/video/${video._id}`} key={video._id} className="video-card" style={{ textDecoration: 'none' }}>
-                            <div className="thumbnail-container">
-                                <img
-                                    src={video.thumbnail}
-                                    alt={video.title}
-                                    className="thumbnail-img"
-                                />
-                                <span className="duration-badge">{formatDuration(video.duration)}</span>
-                            </div>
-                            <div className="video-info">
-                                <div className="channel-avatar">
-                                    {video.owner?.avatar ? (
-                                        <img src={video.owner.avatar} alt="avatar" />
-                                    ) : (
-                                        <div className="avatar-placeholder" />
-                                    )}
-                                </div>
-                                <div className="video-details">
-                                    <h3 className="video-title">{video.title}</h3>
-                                    <p className="channel-name">{video.owner?.username || "Unknown Channel"}</p>
-                                    <p className="video-meta">
-                                        {video.views} views • {formatTimeAgo(video.createdAt)}
-                                    </p>
-                                </div>
-                            </div>
-                        </Link>
+                        <VideoCard key={video._id} video={video} />
                     ))}
                 </div>
             )}
 
-            <style>{`
-                .video-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                    gap: 16px;
-                    row-gap: 32px;
-                }
-                
-                .video-card {
-                    cursor: pointer;
-                }
-                
-                .thumbnail-container {
-                    position: relative;
-                    aspect-ratio: 16/9;
-                    border-radius: 12px;
-                    overflow: hidden;
-                    background-color: #202020;
-                    margin-bottom: 12px;
-                }
-                .thumbnail-img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    transition: transform 0.2s;
-                }
-                .video-card:hover .thumbnail-img {
-                    border-radius: 0; /* YouTube quirk or keep rounded */
-                }
-                
-                .duration-badge {
-                    position: absolute;
-                    bottom: 8px;
-                    right: 8px;
-                    background-color: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 3px 6px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    font-weight: 500;
-                }
-                
-                .video-info {
-                    display: flex;
-                    gap: 12px;
-                    align-items: flex-start;
-                }
-                
-                .channel-avatar img, .avatar-placeholder {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    background-color: #555;
-                    object-fit: cover;
-                }
-                
-                .video-details {
-                    flex: 1;
-                }
-                
-                .video-title {
-                    margin: 0 0 4px 0;
-                    font-size: 1rem;
-                    line-height: 1.4rem;
-                    font-weight: 600;
-                    color: var(--text-main);
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                }
-                
-                .channel-name, .video-meta {
-                    color: var(--text-secondary);
-                    font-size: 0.9rem;
-                    margin: 0;
-                    line-height: 1.2rem;
-                }
-                .channel-name {
-                    margin-bottom: 2px;
-                }
-                .channel-name:hover {
-                    color: var(--text-main);
-                }
-            `}</style>
+            {/* Load More Button */}
+            {videos.length > 0 && (
+                <div className="text-center mt-10">
+                    <button
+                        className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                        onClick={() => console.log('Load more videos')}
+                    >
+                        Load More Videos
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

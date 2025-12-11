@@ -165,10 +165,12 @@ export const getVideoById = asyncHandler(async (req, res) => {
         });
 
         // Check Subscription to Channel Owner
-        isSubscribed = await Subscription.exists({
-            subscriber: req.user._id,
-            channel: video.owner._id
-        });
+        if (video.owner) {
+            isSubscribed = await Subscription.exists({
+                subscriber: req.user._id,
+                channel: video.owner._id
+            });
+        }
     }
 
     // Combine data

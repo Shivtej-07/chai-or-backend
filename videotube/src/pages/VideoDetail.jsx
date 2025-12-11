@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import '../index.css';
 import CommentList from '../components/CommentList';
+import AddToPlaylistModal from '../components/AddToPlaylistModal';
 
 function VideoDetail() {
     const { videoId } = useParams();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [video, setVideo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -19,9 +21,9 @@ function VideoDetail() {
     // Counts
     const [likeCount, setLikeCount] = useState(0);
     const [subscriberCount, setSubscriberCount] = useState(0);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
     // Deterministic fallback ONLY for subscribers if backend fails/is missing
-    // (Though now backend should return real subs count via separate call)
     const getFallbackCount = (id) => {
         if (!id) return 1000;
         const seed = parseInt(id.substring(id.length - 4), 16);
@@ -65,7 +67,7 @@ function VideoDetail() {
         if (videoId) {
             fetchVideo();
         }
-    }, [videoId, user]); // Refetch if user logs in/out to update isLiked status
+    }, [videoId, user]);
 
     const formatCount = (count) => {
         if (count >= 1000000) {
@@ -113,19 +115,20 @@ function VideoDetail() {
         alert("Link copied to clipboard!");
     };
 
-    if (loading) return <div className="text-center" style={{ marginTop: '2rem' }}>Loading player...</div>;
-    if (error) return <div className="text-center status error" style={{ marginTop: '2rem' }}>{error}</div>;
-    if (!video) return <div className="text-center" style={{ marginTop: '2rem' }}>Video not found.</div>;
+    if (loading) return <div className="text-center mt-8">Loading player...</div>;
+    if (error) return <div className="text-center mt-8 text-red-500">{error}</div>;
+    if (!video) return <div className="text-center mt-8">Video not found.</div>;
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 800px' }}>
+        <div className="max-w-screen-2xl mx-auto flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
+            {/* Main Content */}
+            <div className="lg:flex-1 w-full">
                 {/* Video Player */}
-                <div className="video-player-wrapper">
+                <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
                     <video
                         controls
                         autoPlay
-                        style={{ width: '100%', height: '100%', borderRadius: '12px' }}
+                        className="w-full h-full object-contain"
                         poster={video.thumbnail}
                     >
                         <source src={video.videoFile} type="video/mp4" />
@@ -134,104 +137,114 @@ function VideoDetail() {
                 </div>
 
                 {/* Video Info */}
-                <div style={{ marginTop: '16px' }}>
-                    <h1 style={{ fontSize: '1.4rem', fontWeight: '600', marginBottom: '8px' }}>{video.title}</h1>
+                <div className="mt-4">
+                    <h1 className="text-xl lg:text-2xl font-semibold mb-2">{video.title}</h1>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {/* Action Bar */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                        {/* Channel Info */}
+                        <div className="flex items-center gap-3">
                             <img
                                 src={video.owner?.avatar || "https://via.placeholder.com/40"}
                                 alt={video.owner?.username}
-                                style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+                                className="w-10 h-10 rounded-full"
                             />
                             <div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: '500', margin: 0 }}>{video.owner?.username}</h3>
-                                <p style={{ fontSize: '0.8rem', color: '#aaa', margin: 0 }}>{formatCount(subscriberCount)} subscribers</p>
+                                <h3 className="font-medium">{video.owner?.username}</h3>
+                                <p className="text-sm text-gray-400">{formatCount(subscriberCount)} subscribers</p>
                             </div>
 
-                            <button
-                                className={`subscribe-btn ${isSubscribed ? 'subscribed' : ''}`}
-                                onClick={handleSubscribe}
-                            >
-                                {isSubscribed ? 'Subscribed' : 'Subscribe'}
-                            </button>
+                            {user?._id === video.owner?._id ? (
+                                <button
+                                    onClick={() => navigate(`/video/edit/${video._id}`)}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium text-sm transition-colors"
+                                >
+                                    Edit Video
+                                </button>
+                            ) : (
+                                <button
+                                    className={`px-4 py-2 rounded-full font-medium text-sm transition-colors ${isSubscribed
+                                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                        : 'bg-white text-black hover:bg-gray-200'
+                                        }`}
+                                    onClick={handleSubscribe}
+                                >
+                                    {isSubscribed ? 'Subscribed' : 'Subscribe'}
+                                </button>
+                            )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="action-btn" onClick={handleLike}>
-                                {isLiked ? '❤️' : '👍'} {likeCount}
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm font-medium transition-colors"
+                                onClick={handleLike}
+                            >
+                                <span>{isLiked ? '❤️' : '👍'}</span>
+                                <span>{likeCount}</span>
                             </button>
-                            <button className="action-btn">👎</button>
-                            <button className="action-btn" onClick={handleShare}>Share</button>
+                            <button className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm font-medium transition-colors">
+                                👎
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm font-medium transition-colors"
+                                onClick={handleShare}
+                            >
+                                Share
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-full text-sm font-medium transition-colors"
+                                onClick={() => setShowPlaylistModal(true)}
+                            >
+                                💾 Save
+                            </button>
                         </div>
                     </div>
 
-                    <div className="description-box">
-                        <p style={{ fontWeight: '500', marginBottom: '8px' }}>{video.views} views • {new Date(video.createdAt).toLocaleDateString()}</p>
-                        <p>{video.description}</p>
+                    {showPlaylistModal && (
+                        <AddToPlaylistModal
+                            videoId={videoId}
+                            onClose={() => setShowPlaylistModal(false)}
+                        />
+                    )}
+
+                    {/* Description */}
+                    <div className="bg-gray-800 p-4 rounded-xl mt-6">
+                        <div className="flex items-center gap-2 text-sm text-gray-300 mb-3">
+                            <span>{video.views} views</span>
+                            <span>•</span>
+                            <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-gray-200 whitespace-pre-wrap">{video.description}</p>
                     </div>
 
                     {/* Comments Section */}
-                    <CommentList videoId={videoId} />
+                    <div className="mt-8">
+                        <CommentList videoId={videoId} />
+                    </div>
                 </div>
             </div>
 
-            {/* Sidebar / Recommended (Placeholder) */}
-            <div style={{ flex: '1 1 300px' }}>
-                <h3>Up Next</h3>
-                <p style={{ color: '#aaa' }}>Recommendations coming soon...</p>
+            {/* Sidebar / Recommended Videos */}
+            <div className="lg:w-80 w-full lg:mt-0 mt-6">
+                <h3 className="text-lg font-semibold mb-4">Up Next</h3>
+                <div className="space-y-4">
+                    <div className="text-gray-400 text-sm">
+                        Recommendations coming soon...
+                    </div>
+                    {/* Placeholder for recommended videos */}
+                    <div className="bg-gray-800 rounded-lg p-4 animate-pulse">
+                        <div className="h-40 bg-gray-700 rounded mb-3"></div>
+                        <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-4 animate-pulse">
+                        <div className="h-40 bg-gray-700 rounded mb-3"></div>
+                        <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                </div>
             </div>
-
-            <style>{`
-                .video-player-wrapper {
-                     width: 100%;
-                     aspect-ratio: 16/9;
-                     background-color: black;
-                     border-radius: 12px;
-                }
-                .subscribe-btn {
-                    background-color: white;
-                    color: black;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 18px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    margin-left: 16px;
-                    transition: background-color 0.2s;
-                }
-                .subscribe-btn:hover {
-                    background-color: #d9d9d9;
-                }
-                .subscribe-btn.subscribed {
-                    background-color: #303030;
-                    color: #aaa;
-                }
-                .action-btn {
-                    background-color: #272727;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 18px;
-                    cursor: pointer;
-                    font-size: 0.9rem;
-                    font-weight: 500;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                .action-btn:hover {
-                    background-color: #3f3f3f;
-                }
-                .description-box {
-                    background-color: #272727;
-                    padding: 12px;
-                    border-radius: 12px;
-                    margin-top: 16px;
-                    font-size: 0.95rem;
-                    white-space: pre-wrap; /* Preserve newlines in description */
-                }
-            `}</style>
         </div>
     );
 }

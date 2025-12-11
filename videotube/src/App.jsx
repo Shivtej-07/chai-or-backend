@@ -11,6 +11,11 @@ import './App.css';
 
 import History from './pages/History';
 import LikedVideos from './pages/LikedVideos';
+import Settings from './pages/Settings';
+import EditVideo from './pages/EditVideo';
+import Search from './pages/Search';
+import Playlists from './pages/Playlists';
+import PlaylistDetail from './pages/PlaylistDetail';
 
 const router = createBrowserRouter([
   {
@@ -43,12 +48,32 @@ const router = createBrowserRouter([
         element: <VideoDetail />
       },
       {
+        path: "video/edit/:videoId",
+        element: <EditVideo />
+      },
+      {
         path: "history",
         element: <History />
       },
       {
         path: "liked",
         element: <LikedVideos />
+      },
+      {
+        path: "settings",
+        element: <Settings />
+      },
+      {
+        path: "search",
+        element: <Search />
+      },
+      {
+        path: "playlists",
+        element: <Playlists />
+      },
+      {
+        path: "playlist/:playlistId",
+        element: <PlaylistDetail />
       }
     ]
   }

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import api from '../api/axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import '../index.css';
 
 function Login() {
     const [formData, setFormData] = useState({
@@ -11,6 +10,7 @@ function Login() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuth();
 
@@ -19,6 +19,7 @@ function Login() {
             ...formData,
             [e.target.name]: e.target.value
         });
+        setError('');
     };
 
     const handleSubmit = async (e) => {
@@ -42,134 +43,207 @@ function Login() {
         }
     };
 
+    const handleDemoLogin = async () => {
+        setFormData({
+            email: 'demo@example.com',
+            password: 'demo123'
+        });
+        // Optionally auto-login with demo credentials
+        // await handleSubmit(new Event('submit'));
+    };
+
     return (
-        <div className="login-wrapper">
-            <div className="login-card">
-                <div className="text-center" style={{ marginBottom: '2rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔐</div>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>Welcome Back</h2>
-                    <p style={{ color: '#aaa' }}>Sign in to continue to VideoTube</p>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black p-4">
+            <div className="w-full max-w-md">
+                {/* Logo/Header */}
+                <div className="text-center mb-8">
+                    <Link to="/" className="inline-block mb-6">
+                        <div className="flex items-center justify-center gap-2 text-3xl font-bold">
+                            <span className="text-red-600">▶</span>
+                            <span className="text-white font-['Oswald'] tracking-tight">VideoTube</span>
+                        </div>
+                    </Link>
+                    <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
+                    <p className="text-gray-400">Sign in to continue to VideoTube</p>
                 </div>
 
+                {/* Demo Login Option */}
+                <div className="mb-6">
+                    <button
+                        onClick={handleDemoLogin}
+                        className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02]"
+                    >
+                        <span className="text-xl">🚀</span>
+                        Try Demo Account
+                    </button>
+                </div>
+
+                {/* Or Divider */}
+                <div className="flex items-center my-6">
+                    <div className="flex-1 h-px bg-gray-700"></div>
+                    <div className="px-4 text-gray-500 text-sm">OR</div>
+                    <div className="flex-1 h-px bg-gray-700"></div>
+                </div>
+
+                {/* Error Message */}
                 {error && (
-                    <div className="error-alert">
-                        {error}
+                    <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-xl text-red-300 text-sm flex items-center gap-3">
+                        <span className="text-xl">⚠️</span>
+                        <span>{error}</span>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <label>Email or Username</label>
+                {/* Login Form */}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Email Field */}
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                            Email or Username
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500">📧</span>
+                            </div>
+                            <input
+                                id="email"
+                                type="text"
+                                name="email"
+                                placeholder="Enter your email or username"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required
+                                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Password Field */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                                Password
+                            </label>
+                            <Link
+                                to="/forgot-password"
+                                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500">🔒</span>
+                            </div>
+                            <input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                placeholder="Enter your password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                required
+                                className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            >
+                                <span className="text-gray-400 hover:text-white transition-colors">
+                                    {showPassword ? '🙈' : '👁️'}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Remember Me */}
+                    <div className="flex items-center">
                         <input
-                            type="text"
-                            name="email"
-                            placeholder="Enter your email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            className="modern-input"
+                            id="remember"
+                            type="checkbox"
+                            className="h-4 w-4 bg-gray-800 border-gray-700 rounded focus:ring-blue-500 focus:ring-offset-gray-900"
                         />
+                        <label htmlFor="remember" className="ml-2 text-sm text-gray-400">
+                            Remember me for 30 days
+                        </label>
                     </div>
 
-                    <div className="input-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="Enter your password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required
-                            className="modern-input"
-                        />
-                    </div>
-
-                    <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
-                        {/* Link to forgot password could go here */}
-                        <span style={{ fontSize: '0.9rem', color: '#3ea6ff', cursor: 'pointer' }}>Forgot password?</span>
-                    </div>
-
-                    <button type="submit" className="modern-btn" disabled={loading}>
-                        {loading ? 'Signing In...' : 'Sign In'}
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-3"
+                    >
+                        {loading ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="text-xl">→</span>
+                                <span>Sign In</span>
+                            </>
+                        )}
                     </button>
                 </form>
 
-                <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: '#aaa' }}>
-                    Don't have an account? <Link to="/register" style={{ color: '#3ea6ff', textDecoration: 'none' }}>Sign up</Link>
+                {/* Social Login Options */}
+                <div className="mt-8">
+                    <div className="text-center text-gray-500 text-sm mb-4">Or continue with</div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            className="flex items-center justify-center gap-3 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl transition-colors"
+                        >
+                            <span className="text-xl">G</span>
+                            <span className="text-sm font-medium text-gray-300">Google</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="flex items-center justify-center gap-3 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl transition-colors"
+                        >
+                            <span className="text-xl">G</span>
+                            <span className="text-sm font-medium text-gray-300">GitHub</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Sign Up Link */}
+                <div className="mt-8 text-center">
+                    <p className="text-gray-500">
+                        Don't have an account?{' '}
+                        <Link
+                            to="/register"
+                            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                        >
+                            Sign up now
+                        </Link>
+                    </p>
+                    <p className="text-gray-600 text-sm mt-4">
+                        By continuing, you agree to our{' '}
+                        <a href="#" className="text-blue-400 hover:text-blue-300">Terms</a>{' '}
+                        and{' '}
+                        <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
+                    </p>
+                </div>
+
+                {/* Back to Home */}
+                <div className="mt-6 text-center">
+                    <Link
+                        to="/"
+                        className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                        <span>←</span>
+                        <span>Back to home</span>
+                    </Link>
                 </div>
             </div>
 
-            <style>{`
-                .login-wrapper {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 80vh;
-                }
-                .login-card {
-                    background-color: #1e1e1e;
-                    padding: 3rem;
-                    border-radius: 16px;
-                    width: 100%;
-                    max-width: 440px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                    border: 1px solid #333;
-                }
-                .input-group {
-                    margin-bottom: 1.25rem;
-                }
-                .input-group label {
-                    display: block;
-                    margin-bottom: 0.5rem;
-                    font-size: 0.9rem;
-                    color: #ddd;
-                }
-                .modern-input {
-                    width: 100%;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    background-color: #121212;
-                    border: 1px solid #444;
-                    color: white;
-                    font-size: 1rem;
-                    outline: none;
-                    transition: border-color 0.2s;
-                    box-sizing: border-box;
-                }
-                .modern-input:focus {
-                    border-color: #3ea6ff;
-                }
-                .modern-btn {
-                    width: 100%;
-                    padding: 12px;
-                    background-color: #3ea6ff;
-                    color: black;
-                    border: none;
-                    border-radius: 24px;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-                .modern-btn:hover {
-                    background-color: #62b4ff;
-                }
-                .modern-btn:disabled {
-                    background-color: #555;
-                    color: #888;
-                    cursor: not-allowed;
-                }
-                .error-alert {
-                    background-color: rgba(255, 68, 68, 0.1);
-                    border: 1px solid #ff4444;
-                    color: #ff4444;
-                    padding: 12px;
-                    border-radius: 8px;
-                    margin-bottom: 1.5rem;
-                    text-align: center;
-                    font-size: 0.9rem;
-                }
-            `}</style>
+            {/* Decorative Elements */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600"></div>
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-900/10 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 left-0 w-64 h-64 bg-purple-900/10 rounded-full blur-3xl"></div>
         </div>
     );
 }

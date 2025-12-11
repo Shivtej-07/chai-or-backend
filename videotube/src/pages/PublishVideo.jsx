@@ -48,9 +48,7 @@ function PublishVideo() {
 
         try {
             // Note: Cloudinary upload might take time, backend should handle timeout or frontend should wait
-            const response = await api.post('/videos/publish', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const response = await api.post('/videos/publish', data);
             console.log("Upload success:", response.data);
             navigate('/');
         } catch (err) {
