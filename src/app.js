@@ -16,7 +16,18 @@ import { ApiError } from "./utils/ApiError.js";
 const app = express();
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: function (requestOrigin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!requestOrigin) return callback(null, true);
+
+        const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map(url => url.trim()) : [];
+
+        if (allowedOrigins.indexOf(requestOrigin) !== -1 || requestOrigin.endsWith(".vercel.app")) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
