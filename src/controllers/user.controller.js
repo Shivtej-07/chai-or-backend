@@ -20,6 +20,10 @@ const generateAccessAndRefereshTokens = async (userId) => {
 
 
     } catch (error) {
+        try {
+            await import('fs').then(fs => fs.appendFileSync('debug_error.log', `[${new Date().toISOString()}] Error in generateTokens: ${error.message}\nStack: ${error.stack}\nEnv check: ACCESS=${!!process.env.ACCESS_TOKEN_SECRET} REFRESH=${!!process.env.REFRESH_TOKEN_SECRET}\n`));
+        } catch (e) { console.error("Logging failed", e) }
+
         throw new ApiError(500, "Something went wrong while generating referesh and access token")
     }
 }
@@ -94,14 +98,15 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     try {
-        await sendEmail({
-            email: createdUser.email,
-            subject: "Welcome to Videotube",
-            message: `Hi ${createdUser.fullName},\n\nWelcome to Videotube! We are excited to have you on board.\n\nBest regards,\nThe Videotube Team`
-        });
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await sendEmail({
+                email: createdUser.email,
+                subject: "Welcome to Videotube",
+                message: `Hi ${createdUser.fullName},\n\nYou have successfully logged in to your Videotube account.\n\nIf this wasn't you, please change your password immediately.\n\nBest regards,\nThe Videotube Team`
+            });
+        }
     } catch (error) {
         console.error("Error sending welcome email:", error);
-        // Note: We don't throw here to avoid blocking registration if email fails
     }
 
     return res.status(201).json(
@@ -156,11 +161,13 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     try {
-        await sendEmail({
-            email: loggedInUser.email,
-            subject: "Login Alert - Videotube",
-            message: `Hi ${loggedInUser.fullName},\n\nYou have successfully logged in to your Videotube account.\n\nIf this wasn't you, please change your password immediately.\n\nBest regards,\nThe Videotube Team`
-        });
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await sendEmail({
+                email: loggedInUser.email,
+                subject: "Login Alert - Videotube",
+                message: `Hi ${loggedInUser.fullName},\n\nYou have successfully logged in to your Videotube account.\n\nIf this wasn't you, please change your password immediately.\n\nBest regards,\nThe Videotube Team`
+            });
+        }
     } catch (error) {
         console.error("Error sending login email:", error);
     }
